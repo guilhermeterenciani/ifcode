@@ -61,44 +61,29 @@ export function CodeRunner() {
     };
 
     return (
-        <div className="code-runner-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-            <div style={{ display: 'flex', gap: '1rem', padding: '1rem' }}>
-                <button
-                    onClick={executeCode}
-                    disabled={isRunning}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: isRunning ? '#555' : '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    {isRunning ? 'Executando...' : 'Executar Código (Ctrl+Enter)'}
-                </button>
-
-                <button
-                    onClick={clearOutput}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Limpar Output
-                </button>
-            </div>
-
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                <div style={{ flex: 1 }}>
+         <div className="code-runner-container" style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: '100vh',
+            backgroundColor: '#121212'
+        }}>
+            <div style={{ 
+                display: 'flex', 
+                flex: 1, 
+                overflow: 'hidden',
+                gap: '1rem',
+                padding: '1rem'
+            }}>
+                <div style={{ 
+                    flex: 1,
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                }}>
                     <MonacoEditor
                         code={code}
                         onChange={(value) => setCode(value || '')}
-                        language="javascript"
+                        language="typescript"
                         height="100%"
                     />
                 </div>
@@ -106,21 +91,74 @@ export function CodeRunner() {
                 <div style={{
                     flex: '0 0 30%',
                     background: '#1E1E1E',
-                    color: '#FFF',
+                    color: '#e0e0e0',
                     padding: '1rem',
                     overflowY: 'auto',
                     fontFamily: 'monospace',
-                    whiteSpace: 'pre-wrap'
+                    whiteSpace: 'pre-wrap',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                 }}>
-                    <h3 style={{ marginTop: 0 }}>Output:</h3>
+                    <h3 style={{ 
+                        marginTop: 0,
+                        color: '#ffffff',
+                        borderBottom: '1px solid #333',
+                        paddingBottom: '0.5rem'
+                    }}>Output</h3>
                     {output.length === 0 ? (
                         <p style={{ color: '#888' }}>Nenhum output ainda. Execute seu código para ver o resultado.</p>
                     ) : (
                         output.map((line, index) => (
-                            <div key={index} style={{ marginBottom: '0.5rem' }}>{line}</div>
+                            <div key={index} style={{ 
+                                marginBottom: '0.5rem',
+                                color: line.startsWith('❌') ? '#ff6b6b' : 
+                                       line.startsWith('⚠️') ? '#ffd166' : '#e0e0e0'
+                            }}>{line}</div>
                         ))
                     )}
                 </div>
+            </div>
+            <div style={{ 
+                display: 'flex', 
+                gap: '1rem', 
+                padding: '1rem',
+                borderTop: '1px solid #333',
+                backgroundColor: '#1E1E1E'
+            }}>
+                <button
+                    onClick={executeCode}
+                    disabled={isRunning}
+                    style={{
+                        padding: '0.5rem 1.5rem',
+                        background: isRunning ? '#555' : '#2A8DFF',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background 0.2s',
+                    }}
+                >
+                    {isRunning ? 'Executando...' : 'Executar Código'}
+                </button>
+
+                <button
+                    onClick={clearOutput}
+                    style={{
+                        padding: '0.5rem 1.5rem',
+                        background: '#444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background 0.2s',
+                    }}
+                >
+                    Limpar Output
+                </button>
             </div>
         </div>
     );

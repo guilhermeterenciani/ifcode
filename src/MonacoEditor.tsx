@@ -12,8 +12,8 @@ interface MonacoEditorProps {
 export function MonacoEditor({ 
   code, 
   onChange, 
-  language = 'javascript', 
-  height = '50rem' 
+  language = 'typescript', 
+  height = '100%' 
 }: MonacoEditorProps) {
   const monacoRef = useRef<Monaco | null>(null);
 
@@ -24,9 +24,16 @@ export function MonacoEditor({
     monacoInstance.editor.defineTheme('custom-dark', {
       base: 'vs-dark',
       inherit: true,
-      rules: [],
+      rules: [
+        { token: '', foreground: '#e0e0e0', background: '#1E1E1E' },
+      ],
       colors: {
         'editor.background': '#1E1E1E',
+        'editor.lineHighlightBackground': '#282828',
+        'editorCursor.foreground': '#ffffff',
+        'editor.lineNumbers': '#858585',
+        'editor.selectionBackground': '#3a3a3a',
+        'editor.inactiveSelectionBackground': '#3a3a3a80',
       },
     });
     monacoInstance.editor.setTheme('custom-dark');
@@ -39,7 +46,7 @@ export function MonacoEditor({
       value={code}
       onChange={onChange}
       onMount={handleEditorDidMount}
-      theme="vs-dark"
+      theme="custom-dark"
       options={{
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
@@ -48,8 +55,10 @@ export function MonacoEditor({
         automaticLayout: true,
         tabSize: 2,
         renderWhitespace: 'selection',
-        padding: { top: 10 },
+        padding: { top: 16, bottom: 16 },
         bracketPairColorization: { enabled: true },
+        guides: { indentation: true },
+        selectionHighlight: false,
       }}
     />
   );
