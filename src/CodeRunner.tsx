@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MonacoEditor } from './MonacoEditor';
+import axios from 'axios'
 
 export function CodeRunner() {
     const [code, setCode] = useState<string>(
@@ -7,7 +8,11 @@ export function CodeRunner() {
     );
     const [output, setOutput] = useState<string[]>([]);
     const [isRunning, setIsRunning] = useState(false);
-
+    const sendCode = ()=>{
+        console.log(code)
+        const data = {code}
+        axios.post('http://localhost:5001/run-code', data)
+    }
     // Captura console.log do usuário
     const captureConsole = () => {
         const originalConsole = { ...console };
@@ -47,6 +52,7 @@ export function CodeRunner() {
         try {
             // Usando Function para evitar problemas de escopo
             new Function(code)();
+            
         } catch (error) {
             setOutput(prev => [...prev, `❌ Erro: ${error instanceof Error ? error.message : String(error)}`]);
         } finally {
@@ -158,6 +164,22 @@ export function CodeRunner() {
                     }}
                 >
                     Limpar Output
+                </button>
+                <button
+                    onClick={sendCode}
+                    style={{
+                        padding: '0.5rem 1.5rem',
+                        background: '#444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background 0.2s',
+                    }}
+                >
+                    Enviar Código
                 </button>
             </div>
         </div>
