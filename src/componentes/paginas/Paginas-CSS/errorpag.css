@@ -1,0 +1,89 @@
+.error-page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  width: 100%;
+}
+
+/* Estilos para o cabeçalho */
+.error-header {
+  background-color: #282c34;
+  padding: 20px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  margin-left: 20px;
+}
+
+.logo {
+  height: 5em;
+  margin-right: 10px;
+}
+
+.site-name {
+  font-size: 1.8em;
+  font-weight: bold;
+}
+
+/* Estilos para o conteúdo principal */
+.error-main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 50px;
+}
+
+.error-main-content h1 {
+  font-size: 5em;
+  margin: 0;
+}
+
+/* Estilos para o link */
+.home-link {
+  display: inline-block;
+  background-color: #007bff;
+  color: #ffffff;
+  padding: 12px 25px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 1.2em;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+}
+
+.home-link:hover {
+  background-color: #0056b3;
+  cursor: pointer;
+}
+
+/* Estilos para o rodapé */
+.error-footer {
+  background-color: #282c34;
+  padding: 20px;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.error-footer p {
+  margin: 5px 0;
+}
+
+.error-footer a {
+  color: #61dafb;
+  text-decoration: none;
+}
+
+.error-footer a:hover {
+  text-decoration: underline;
+}

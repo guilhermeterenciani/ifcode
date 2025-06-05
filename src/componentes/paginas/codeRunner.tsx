@@ -1,6 +1,6 @@
-import { CodeRunner } from './CodeRunner';
+import { CodeRunner } from '../Editores/CodeRunner';
 
-function App() {
+function Code_Runner() {
   return (
     <div style={{ 
       width: '100%',
@@ -12,4 +12,4 @@ function App() {
   );
 }
 
-export default App;
+export default Code_Runner;
