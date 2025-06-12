@@ -5,7 +5,7 @@ import axios from 'axios'
 
 interface RunCodeResponse {
     token: string;
-}
+};
 
 export function CodeRunner() {
 
@@ -16,21 +16,14 @@ export function CodeRunner() {
     const [output, setOutput] = useState<string[]>([]);
     const [isRunning, setIsRunning] = useState(false);
 
-    const sendCode = async (code: string): Promise<void> => {
+    const sendCode = async (code: string): Promise<string | undefined> => {
 
         try {
 
-            await axios.post<RunCodeResponse>(
+             const response = await axios.post<RunCodeResponse>(
                 `http://localhost:5001/run-code`,
                 { code }
-            );
-
-            //let token = response.data.token
-
-            //console.log(response.data.token)
-
-            //const result = await axios.get(`/submission-result/${token}`);
-
+            ); return response.data.token;
 
         } catch (error) {
             console.error('Error submitting code:', error);
@@ -85,7 +78,19 @@ export function CodeRunner() {
             new Function(code)();
 
             // Envia para o Judge0 direto apenas para facilitar o teste
-            await sendCode(code);
+            const result = await sendCode(code);
+            
+            if (!result){ // Caso não tenha nada no result
+
+                setOutput(prev => [...prev, `❌ Erro ao receber resultado`]);
+
+            } else {
+
+                const judge = await axios.get(
+                    `http://localhost:5001/submission-result/${result}`
+                ); return judge.data
+
+            };
 
         } catch (error) {
 
