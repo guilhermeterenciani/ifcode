@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../../context/authUtils';
 import './Paginas-CSS/homepag.css';
 import './Paginas-CSS/errorpag.css';
@@ -6,6 +6,15 @@ import './Paginas-CSS/errorpag.css';
 export default function HomePage() {
 
     const { isLoggedIn, isAnonymous } = useAuth();
+    const navigate = useNavigate();
+
+    const handleTarefasClick = () => {
+        if (!isLoggedIn) {
+            alert('Você precisa estar logado para acessar as tarefas.');
+        } else {
+            navigate('/Tarefas');
+        }
+    };
 
     return (
 
@@ -36,22 +45,12 @@ export default function HomePage() {
                     <button
                         className='home-button'
                         disabled={!isLoggedIn}
-                        onClick={() => {
-                            if (!isLoggedIn) {
-
-                                alert('Você precisa estar logado para acessar as tarefas.');
-
-                            } else {
-
-                                alert('Área de tarefas em construção!');
-
-                            }
-                        }}
+                        onClick={handleTarefasClick}
                         style={{ cursor: isLoggedIn ? 'pointer' : 'not-allowed', opacity: isLoggedIn ? 1 : 0.6 }}
                     >
                         Tarefas
                     </button>
-                    
+
                 </div>
 
             </main>

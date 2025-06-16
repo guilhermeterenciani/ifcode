@@ -8,8 +8,10 @@ import LoginPage from './componentes/paginas/LoginPage.tsx';
 import RegisterPage from './componentes/paginas/RegisterPage.tsx';
 import ProfilePage from './componentes/paginas/ProfilePage.tsx';
 import App from './App.tsx';
+import Tarefa from './componentes/tarefa/tarefa.tsx';
 
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
 
 const router = createBrowserRouter([
   {
@@ -41,6 +43,10 @@ const router = createBrowserRouter([
       {
         path: 'Code_Runner',
         element: <Code_Runner />,
+      },
+      {
+        path: 'Tarefas',
+        element: <Tarefa />
       },
 
     ],

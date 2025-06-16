@@ -1,63 +1,60 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/authUtils';
+import axios from 'axios';
 import './Paginas-CSS/loginpag.css';
 
 export default function LoginPage() {
-
     const [username, setUsername] = useState('');
-
     const [password, setPassword] = useState('');
-
     const navigate = useNavigate();
+    const { login } = useAuth();
 
-    const { login, continueAnonymously } = useAuth();
-
-    const handleLogin = (e: React.FormEvent) => { //Função de Falso login, integração com backend necessaria no futuro 👌
-
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (username && password) {
+            try {
+                interface LoginResponse {
+                    token: string;
+                }
+                const response = await axios.post<LoginResponse>('http://localhost:5001/api/auth/login', {
+                    username,
+                    password,
+                });
+                const token = response.data.token;
 
-            login(username);
-            navigate('/');
-
+                if (token) {
+                    login(username);// Armazena o token aqui também
+                    navigate('/');
+                }
+            } catch (error) {
+                console.error('Erro no login:', error);
+                alert('Falha no login. Verifique suas credenciais.');
+            }
         } else {
-
-            alert('Please enter both username and password.');
-
+            alert('Por favor, insira o nome de usuário e a senha.');
         }
     };
 
-    const handleContinueAnonymously = () => { // Como não há  como cadastrar Usuarios, e caso apenas seja um teste do site, tem como ficar no anonimato apenas para testar!
-
-        continueAnonymously();
+    const handleContinueAnonymously = () => {
+        // A lógica de continuar como anônimo
         navigate('/');
-
     };
 
     return (
-
         <div className="login-page-container">
-
             <header className="login-header">
-
                 <div className="header-content">
                     <img src="/TereZinho.svg" alt="CodeSpace Logo" className="logo" />
                     <span className="site-name">CodeSpace</span>
                 </div>
-
             </header>
-
             <main className="login-main-content">
-
                 <div className="login-form-container">
-
                     <h1>Login</h1>
-
                     <form onSubmit={handleLogin}>
-
                         <div className="input-group">
-                            <label htmlFor="username">Username:</label>
+                            <label htmlFor="username">Usuário:</label>
                             <input
                                 type="text"
                                 id="username"
@@ -66,7 +63,6 @@ export default function LoginPage() {
                                 required
                             />
                         </div>
-
                         <div className="input-group">
                             <label htmlFor="password">Senha:</label>
                             <input
@@ -77,22 +73,15 @@ export default function LoginPage() {
                                 required
                             />
                         </div>
-
                         <button type="submit" className="login-button">Login</button>
-
                     </form>
-
                     <button onClick={handleContinueAnonymously} className="anonymous-button">
-                        Continue como Anônimo
+                        Continuar como Anônimo
                     </button>
-
-                    <p>Não Possue uma Conta? <Link to="/register">Sign up</Link></p>
+                    <p>Não Possui uma Conta? <Link to="/register">Sign up</Link></p>
                 </div>
-
             </main>
-
             <footer className="login-footer">
-
                 <p>Autores: Elitinho123456 / Guilherme Figueiredo Terenciani</p>
                 <p>&copy; 2025 CodeSpace - Todos os direitos reservados.</p>
                 <p>
@@ -100,7 +89,6 @@ export default function LoginPage() {
                         Repositório do GitHub
                     </a>
                 </p>
-
             </footer>
         </div>
     );
