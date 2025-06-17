@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MonacoEditor } from './MonacoEditor';
+import { MonacoEditor } from './MonacoEditor'; // Editor
 import { Link } from 'react-router-dom';
 import axios from 'axios'
 
@@ -21,7 +21,7 @@ export function CodeRunner() {
         try {
 
              const response = await axios.post<RunCodeResponse>(
-                `http://localhost:5001/run-code`,
+                `http://localhost:5001/api/code/run-code`,
                 { code }
             ); return response.data.token;
 
@@ -87,7 +87,7 @@ export function CodeRunner() {
             } else {
 
                 const judge = await axios.get(
-                    `http://localhost:5001/submission-result/${result}`
+                    `http://localhost:5001/api/code/submission-result/${result}`
                 ); return judge.data
 
             };

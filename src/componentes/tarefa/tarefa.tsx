@@ -1,77 +1,120 @@
-// import { useState } from 'react';
-import '../paginas/Paginas-CSS/homepag.css';
-import '../paginas/Paginas-CSS/errorpag.css';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import '../paginas/Paginas-CSS/tarefa.css';
 
-// interface TarefaProps {
-//     id: number; // Numero único para identificar a tarefa
-//     titulo: string; // Título da tarefa
-//     descricao: string; // Descrição da tarefa
-//     concluida: boolean; // Indica se a tarefa foi concluída ou não
-//     dataCriacao: string; // Data de criação da tarefa
-//     dataConclusao?: string; // Data de conclusão da tarefa (opcional)
-//     dataLimite?: string; // Data limite para conclusão da tarefa (opcional)
-//     prioridade: 'baixa' | 'media' | 'alta'; // Prioridade da tarefa
-//     categoria: string; // Categoria da tarefa
-//     autor?: string; // Autor da tarefa (opcional)
-//     stadinput: string; //  Input da tarefa esperada
-//     stdoutput: string; // Output da tarefa esperada
-// }  
+// Interface estrutura de uma tarefa
+interface TarefaProps {
+    id: number;
+    titulo: string;
+    descricao: string;
+    concluida: boolean;
+    dataCriacao: string;
+    dataConclusao?: string;
+    dataLimite?: string;
+    prioridade: 'baixa' | 'media' | 'alta';
+    categoria: string;
+    autor?: string;
+    stdinput?: string;
+    stdoutput: string;
+}
 
 function TarefaComponent() {
 
+    const [tarefas, setTarefas] = useState<TarefaProps[]>([]); // Estado para armazenar as tarefas
+    const [loading, setLoading] = useState(true); // Estado para controlar o carregamento
+    const [error, setError] = useState<string | null>(null); // Estado para armazenar erros
+    const [selectedTarefa, setSelectedTarefa] = useState<TarefaProps | null>(null); // Estado para armazenar a tarefa selecionada para detalhes
 
-    // const [tarefas, setTarefas] = useState<TarefaProps[]>([
-    //     {
-    //         id: 1,
-    //         titulo: 'Implementar autenticação de usuário Teste',
-    //         descricao: 'Desenvolver o sistema de autenticação de usuários com login e registro.',
-    //         concluida: false,
-    //         dataCriacao: '2025-01-01',
-    //         dataConclusao: '',
-    //         dataLimite: '2025-01-15',
-    //         prioridade: 'alta',
-    //         categoria: 'Desenvolvimento',
-    //         autor: 'Elitinho123456',
-    //         stadinput: 'Usuário e senha',
-    //         stdoutput: 'Usuário autenticado com sucesso'
-    //     }
-    // ]);
+    // Efeito para buscar as tarefas da API quando o componente é montado
+    useEffect(() => {
+
+        const fetchTarefas = async () => {
+
+            try {
+
+                const response = await axios.get<TarefaProps[]>('http://localhost:5001/api/tarefas');
+                setTarefas(response.data);
+
+            } catch (err) {
+
+                setError('Falha ao carregar as tarefas. Tente novamente mais tarde.');
+                console.error(err);
+
+            } finally {
+
+                setLoading(false);
+
+            }
+        };
+
+        fetchTarefas();
+    }, []);
+
+    // Funções para abrir e fechar os detalhes
+    const handleOpenModal = (tarefa: TarefaProps) => {
+        setSelectedTarefa(tarefa);
+    };
+
+    const handleCloseModal = () => {
+        setSelectedTarefa(null);
+    };
+
+    if (loading) return <div className="loading">Carregando tarefas...</div>;
+    if (error) return <div className="error">{error}</div>;
 
     return (
-        <>
+        <div className="tarefa-page-container">
+            <header className="tarefa-header">
+                <img src="/TereZinho.svg" alt="CodeSpace Logo" className="logo" />
+                <span className="site-name">CodeSpace - Minhas Tarefas</span>
+            </header>
 
-            <div className="home-page-container">
+            <main className="tarefa-main-content">
+                <div className="tarefas-grid">
+                    {tarefas.map((tarefa) => (
+                        <div key={tarefa.id} className="tarefa-card" onClick={() => handleOpenModal(tarefa)}>
+                            <div className="card-content">
+                                <h3>{tarefa.titulo}</h3>
+                                <p className="categoria">{tarefa.categoria}</p>
+                                <span className={`status ${tarefa.concluida ? 'concluida' : 'pendente'}`}>
+                                    {tarefa.concluida ? 'Concluída ✔' : 'Pendente 🕒'}
+                                </span>
+                            </div>
+                            <div className={`prioridade-bar ${tarefa.prioridade}`}></div>
+                        </div>
+                    ))}
+                </div>
+            </main>
 
-                <header className="home-header">
-// Consider extracting the header, main, and footer into separate components for better modularity
-                    <div className="header-content">
-
-                        <img src="/TereZinho.svg" alt="CodeSpace Logo" className="logo" />
-                        <span className="site-name">CodeSpace</span>
-
+            {selectedTarefa && (
+                <div className="modal-overlay" onClick={handleCloseModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="close-button" onClick={handleCloseModal}>×</button>
+                        <h2>{selectedTarefa.titulo}</h2>
+                        <p><strong>Descrição:</strong> {selectedTarefa.descricao}</p>
+                        <p><strong>Categoria:</strong> {selectedTarefa.categoria}</p>
+                        <p><strong>Prioridade:</strong> <span className={`prioridade-text ${selectedTarefa.prioridade}`}>{selectedTarefa.prioridade}</span></p>
+                        <p><strong>Data de Criação:</strong> {new Date(selectedTarefa.dataCriacao).toLocaleDateString()}</p>
+                        {selectedTarefa.dataLimite && <p><strong>Data Limite:</strong> {new Date(selectedTarefa.dataLimite).toLocaleDateString()}</p>}
+                        <hr />
+                        <h4>Requisitos de Saída</h4>
+                        <pre className="code-block">{selectedTarefa.stdoutput}</pre>
+                        {/* Aqui você pode adicionar o editor de código para o `stdinput` */}
                     </div>
-                </header>
+                </div>
+            )}
 
-                <main className="home-main-content">
-
-                </main>
-
-                <footer className="home-footer">
-
-                    <p>Autores: Elitinho123456 / Guilherme Figueiredo Terenciani</p>
-                    <p>&copy; 2025 CodeSpace - Todos os direitos reservados.</p>
-                    <p>
-                        <a href="https://github.com/guilhermeterenciani/ifcode" target="_blank" rel="noopener noreferrer">
-                            Repositório do GitHub
-                        </a>
-                    </p>
-
-                </footer>
-            </div>
-            
-        </>
-
-    )
+            <footer className="tarefa-footer">
+                <p>Autores: Elitinho123456 / Guilherme Figueiredo Terenciani</p>
+                <p>&copy; {new Date().getFullYear()} CodeSpace - Todos os direitos reservados.</p>
+                <p>
+                    <a href="https://github.com/guilhermeterenciani/ifcode" target="_blank" rel="noopener noreferrer">
+                        Repositório do GitHub
+                    </a>
+                </p>
+            </footer>
+        </div>
+    );
 }
 
 export default TarefaComponent;
