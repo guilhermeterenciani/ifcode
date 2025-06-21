@@ -12,6 +12,17 @@ export default function LoginPage() {
 
     const { login } = useAuth(); // Obtém a função de login do contexto de autenticação
 
+    // const handleLoginFake = async (e: React.FormEvent) => {
+    // e.preventDefault();
+    //     // Função para lidar com o envio do formulário de login falso
+    //     if (username && password) { // Verifica se o nome de usuário e a senha foram preenchidos
+    //         login(username); // Chama a função de login com o nome de usuário
+    //         navigate('/'); // Redireciona para a página inicial
+    //     } else {
+    //         alert('Por favor, insira o nome de usuário e a senha.'); // Alerta se os campos não estiverem preenchidos
+    //     }
+    // }
+
     const handleLogin = async (e: React.FormEvent) => {
         // Função para lidar com o envio do formulário de login
         e.preventDefault(); // Previne o comportamento padrão do formulário
@@ -112,6 +123,10 @@ export default function LoginPage() {
                         <button type="submit" className="login-button">Login</button>
 
                     </form>
+
+                    {/* <button onClick={handleLoginFake} className="login falso">
+                        Login Fake me apague
+                    </button> */}
 
                     <button onClick={handleContinueAnonymously} className="anonymous-button">
                         Continuar como Anônimo

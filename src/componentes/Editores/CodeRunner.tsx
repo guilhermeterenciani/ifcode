@@ -20,7 +20,7 @@ export function CodeRunner() {
 
         try {
 
-             const response = await axios.post<RunCodeResponse>(
+            const response = await axios.post<RunCodeResponse>(
                 `http://localhost:5001/api/code/run-code`,
                 { code }
             ); return response.data.token;
@@ -79,18 +79,21 @@ export function CodeRunner() {
 
             // Envia para o Judge0 direto apenas para facilitar o teste
             const result = await sendCode(code);
+
+            const judge = await axios.get(
+                `http://localhost:5001/api/code/submission-result/${result}`
+            );
             
-            if (!result){ // Caso não tenha nada no result
+            const resultJudge0 = judge.data as { status: { id: number; description: string } };
+            console.log(resultJudge0);
+            
+            if (resultJudge0.status.id !== 3) {
+                setOutput(prev => [...prev, `❌ Erro: ${resultJudge0.status.description}`]);
+                return;
+            }
+            return judge.data
 
-                setOutput(prev => [...prev, `❌ Erro ao receber resultado`]);
-
-            } else {
-
-                const judge = await axios.get(
-                    `http://localhost:5001/api/code/submission-result/${result}`
-                ); return judge.data
-
-            };
+            
 
         } catch (error) {
 
