@@ -41,6 +41,7 @@ export default function LoginPage() {
                 });
 
                 const token = response.data.token;
+                localStorage.setItem('token', token);
 
                 if (token) {
                     login(username);// Armazena o token aqui também

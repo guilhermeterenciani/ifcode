@@ -3,20 +3,60 @@ import { useAuth } from '../../context/authUtils';
 import './Paginas-CSS/homepag.css';
 import './Paginas-CSS/errorpag.css';
 import './Paginas-CSS/profilepage.css';
+import { useState, useEffect } from 'react';
+
+interface UserProfile {
+    displayedName: string;
+    username: string;
+    email: string;
+    phone: string;
+    profilePictureUrl: string | null;
+    userTag: string;
+}
 
 export default function ProfilePage() {
+
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const { isLoggedIn, logout } = useAuth();
 
-    // Simulação de dados do usuário (em um ambiente real, viriam do backend)
-    const userProfile = {
-        displayedName: "Erichinyo",
-        username: "elitinho123456",
-        email: "***********@gmail.com", // Para simular o e-mail escondido
-        phone: "***********2152",      // Para simular o telefone escondido
-        password: "minhasenha", // Apenas para controle interno, não deve ser exibido
-        userTag: "#0001", // Simula a tag do Discord
-        profilePicture: "https://i.imgur.com/example.png" // URL de exemplo para a foto
-    };
+
+    useEffect(() => {
+
+        if (isLoggedIn) {
+
+            const fetchUserProfile = async () => {
+
+                try {
+                    const response = await fetch('http://localhost:5001/api/user/profile', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar perfil do usuário');
+                    }
+
+                    const data = await response.json();
+                    setUserProfile({
+                        displayedName: data.displayedName,
+                        username: data.username,
+                        email: data.email,
+                        phone: data.phone,
+                        profilePictureUrl: data.profilePictureUrl || 'https://placehold.co/90x90/8a2be2/ffffff?text=User',
+                        userTag: data.userTag
+                    });
+                } catch (error) {
+                    console.error('Erro ao buscar perfil do usuário:', error);
+                }
+
+            }
+            fetchUserProfile()
+        }
+
+    },[isLoggedIn])
 
     if (!isLoggedIn) {
         return (
@@ -47,8 +87,36 @@ export default function ProfilePage() {
         );
     }
 
-    return (
+    // --- INÍCIO DA CORREÇÃO ---
 
+    // Adiciona uma verificação de carregamento.
+    // Enquanto userProfile for null (e o usuário estiver logado), exibe uma mensagem.
+    if (!userProfile) {
+        return (
+            <div className="profile-page-container">
+                 <header className="home-header">
+                    <div className="header-content">
+                        <img src="/TereZinho.svg" alt="CodeSpace Logo" className="logo" />
+                        <span className="site-name">CodeSpace</span>
+                    </div>
+                </header>
+                <main className="profile-content-area">
+                    <div>Carregando perfil...</div>
+                </main>
+                 <footer className="home-footer">
+                    <p>Autores: Elitinho123456 / Guilherme Figueiredo Terenciani</p>
+                    <p>&copy; 2025 CodeSpace - Todos os direitos reservados.</p>
+                    <p>
+                        <a href="https://github.com/guilhermeterenciani/ifcode" target="_blank" rel="noopener noreferrer">
+                            Repositório do GitHub
+                        </a>
+                    </p>
+                </footer>
+            </div>
+        );
+    }
+
+    return (
         <div className="profile-page-container">
 
             <header className="home-header"> {/* Usando home-header para o estilo base */}
@@ -65,13 +133,11 @@ export default function ProfilePage() {
                         <button className="profile-edit-button">Editar perfil de usuário</button>
                     </div>
 
-
-
                     <div className="profile-details-content">
 
                         <div className="profile-picture-wrapper">
                             <img
-                                src={userProfile.profilePicture}
+                                src={userProfile.profilePictureUrl!} // Adicionado '!' ou pode usar a verificação anterior
                                 alt="Foto de Perfil"
                                 className="profile-picture"
                                 onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/90x90/8a2be2/ffffff?text=User'; }}
@@ -81,7 +147,7 @@ export default function ProfilePage() {
                         <div className="profile-user-name">{userProfile.displayedName}</div>
                         <div className="profile-user-tag">{userProfile.userTag}</div>
 
-                        <div className="profile-section-title">Minha conta</div>
+                        <div className="profile-section-title">Minha Conta</div>
 
                         {/* Campo Nome Exibido */}
                         <div className="profile-input-group">
@@ -91,12 +157,11 @@ export default function ProfilePage() {
                                     type="text"
                                     id="displayedName"
                                     className="profile-input-field"
-                                    value={userProfile.displayedName}
+                                    value={userProfile.displayedName || 'Defina um nome de Exibição!'}
                                     readOnly // Desativado
                                 />
                                 <button className="profile-action-button" disabled>Editar</button> {/* Desativado */}
                             </div>
-
                         </div>
 
                         {/* Campo Nome de Usuário */}
@@ -112,7 +177,6 @@ export default function ProfilePage() {
                                 />
                                 <button className="profile-action-button" disabled>Editar</button> {/* Desativado */}
                             </div>
-
                         </div>
 
                         {/* Campo Senha - Funcionalidade de 'Mostrar' ainda desativada */}
@@ -128,7 +192,6 @@ export default function ProfilePage() {
                                 />
                                 <button className="profile-action-button" disabled>Mostrar</button> {/* Desativado */}
                             </div>
-
                         </div>
 
                         {/* Campo E-mail */}
@@ -144,12 +207,10 @@ export default function ProfilePage() {
                                 />
                                 <button className="profile-action-button" disabled>Mostrar</button> {/* Desativado, pode ser "Mostrar" ou "Editar" */}
                             </div>
-
                         </div>
 
                         {/* Campo Telefone */}
                         <div className="profile-input-group">
-
                             <label htmlFor="phone" className="profile-input-label">Telefone</label>
                             <div className="profile-input-with-button">
                                 <input
@@ -162,7 +223,6 @@ export default function ProfilePage() {
                                 <button className="profile-action-button" disabled>Mostrar</button> {/* Desativado, pode ser "Mostrar" ou "Editar" */}
                                 <button className="profile-action-button remove ml-2" disabled>Remover</button> {/* Desativado */}
                             </div>
-
                         </div>
 
                         <div className="profile-navigation-buttons">
@@ -170,9 +230,7 @@ export default function ProfilePage() {
                             <Link to="/" className="home-link">Voltar para Home</Link>
                         </div>
                     </div>
-
                 </div>
-
             </main>
 
             <footer className="home-footer"> {/* Usando home-footer para o estilo base */}

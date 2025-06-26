@@ -78,7 +78,7 @@
 .profile-details-content {
     padding: 20px;
     position: relative;
-    padding-top: 0.1px;
+    padding-top: 10px;
 }
 
 .profile-user-name {
@@ -101,7 +101,7 @@
     font-weight: 500;
     color: #b0b0d0;
     margin-bottom: 10px;
-    padding-left: 20px;
+    padding-left: 2rem;
 }
 
 .profile-input-group {
