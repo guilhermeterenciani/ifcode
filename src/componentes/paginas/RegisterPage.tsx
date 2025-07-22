@@ -9,6 +9,7 @@ export default function RegisterPage() {
     const [email, setEmail] = useState(''); // Estado para armazenar o email
     const [password, setPassword] = useState(''); // Estado para armazenar a senha
     const [confirmPassword, setConfirmPassword] = useState(''); // Estado para armazenar a confirmação de senha
+    const [phone, setPhone] = useState(''); // Estado para armazenar o telefone
     const [showPassword, setShowPassword] = useState(false); // Estado para controlar a visibilidade da senha
     const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Estado para controlar a visibilidade da confirmação de senha
     const navigate = useNavigate();
@@ -26,9 +27,10 @@ export default function RegisterPage() {
                 username,
                 email,
                 password,
+                phone,
             });
             alert('Conta criada com sucesso!');
-            navigate('/login');
+            navigate('/login'); // Redireciona para a página de login após o registro
 
         } catch (error) {
 
@@ -61,6 +63,7 @@ export default function RegisterPage() {
                     <h1>Registre-Se</h1>
                     <form onSubmit={handleRegister}>
 
+                        {/* Campo Usuário */}
                         <div className="input-group">
                             <label htmlFor="username">Usuário:</label>
                             <input
@@ -72,6 +75,7 @@ export default function RegisterPage() {
                             />
                         </div>
 
+                        {/* Campo Email */}
                         <div className="input-group">
                             <label htmlFor="email">Email:</label>
                             <input
@@ -83,11 +87,25 @@ export default function RegisterPage() {
                             />
                         </div>
 
+                        {/* Campo Telefone */}
+                        <div className="input-group">
+                            <label htmlFor="phone">Telefone:</label>
+                            <input
+                                type="phone"
+                                id="phone"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                required
+                            />
+                        </div>
+
                         <div className="input-group">
 
+                            {/* Container Senhas */}
                             <label htmlFor="password">Senha:</label>
                             <div className="password-input-container"> {/* Container para o input e o ícone */}
 
+                                {/* Senha */}
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     id="password"
@@ -110,6 +128,7 @@ export default function RegisterPage() {
 
                         <div className="input-group">
 
+                            {/* Confirme a Senha */}
                             <label htmlFor="confirm-password">Confirme sua Senha:</label>
                             <div className="password-input-container"> {/* Container para o input e o ícone */}
 

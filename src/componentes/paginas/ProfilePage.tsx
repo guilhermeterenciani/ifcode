@@ -4,6 +4,7 @@ import './Paginas-CSS/homepag.css';
 import './Paginas-CSS/errorpag.css';
 import './Paginas-CSS/profilepage.css';
 import { useState, useEffect } from 'react';
+import { Pen } from 'lucide-react';
 
 interface UserProfile {
     displayedName: string;
@@ -17,6 +18,7 @@ interface UserProfile {
 export default function ProfilePage() {
 
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [isMouseOver, setIsMouseOver] = useState(false);
     const { isLoggedIn, logout } = useAuth();
 
 
@@ -56,7 +58,7 @@ export default function ProfilePage() {
             fetchUserProfile()
         }
 
-    },[isLoggedIn])
+    }, [isLoggedIn])
 
     if (!isLoggedIn) {
         return (
@@ -87,14 +89,12 @@ export default function ProfilePage() {
         );
     }
 
-    // --- INÍCIO DA CORREÇÃO ---
-
     // Adiciona uma verificação de carregamento.
     // Enquanto userProfile for null (e o usuário estiver logado), exibe uma mensagem.
     if (!userProfile) {
         return (
             <div className="profile-page-container">
-                 <header className="home-header">
+                <header className="home-header">
                     <div className="header-content">
                         <img src="/TereZinho.svg" alt="CodeSpace Logo" className="logo" />
                         <span className="site-name">CodeSpace</span>
@@ -103,7 +103,7 @@ export default function ProfilePage() {
                 <main className="profile-content-area">
                     <div>Carregando perfil...</div>
                 </main>
-                 <footer className="home-footer">
+                <footer className="home-footer">
                     <p>Autores: Elitinho123456 / Guilherme Figueiredo Terenciani</p>
                     <p>&copy; 2025 CodeSpace - Todos os direitos reservados.</p>
                     <p>
@@ -135,12 +135,27 @@ export default function ProfilePage() {
 
                     <div className="profile-details-content">
 
-                        <div className="profile-picture-wrapper">
+                        <div
+                            className="profile-picture-wrapper"
+                            onMouseEnter={() => setIsMouseOver(true)}
+                            onMouseLeave={() => setIsMouseOver(false)}
+                        >
+
+                            {isMouseOver && <Pen className='editar' />}
+
                             <img
-                                src={userProfile.profilePictureUrl!} // Adicionado '!' ou pode usar a verificação anterior
+                                src={userProfile.profilePictureUrl || 'https://placehold.co/90x90/8a2be2/ffffff?text=User'}
                                 alt="Foto de Perfil"
                                 className="profile-picture"
-                                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/90x90/8a2be2/ffffff?text=User'; }}
+                                onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = 'https://placehold.co/90x90/8a2be2/ffffff?text=User';
+                                }}
+                            />
+                            <input
+                                type="file"
+                                accept="image/png, image/jpeg, image/jpg" // Aceita apenas imagens
+                                style={{ display: 'none' }} // Esconde o input
                             />
                         </div>
 
@@ -160,7 +175,7 @@ export default function ProfilePage() {
                                     value={userProfile.displayedName || 'Defina um nome de Exibição!'}
                                     readOnly // Desativado
                                 />
-                                <button className="profile-action-button" disabled>Editar</button> {/* Desativado */}
+                                <button className="profile-action-button" disabled><Pen /></button> {/* Desativado */}
                             </div>
                         </div>
 
@@ -175,7 +190,7 @@ export default function ProfilePage() {
                                     value={userProfile.username}
                                     readOnly // Desativado
                                 />
-                                <button className="profile-action-button" disabled>Editar</button> {/* Desativado */}
+                                <button className="profile-action-button" disabled><Pen /></button> {/* Desativado */}
                             </div>
                         </div>
 
@@ -231,7 +246,7 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </div>
-            </main>
+            </main >
 
             <footer className="home-footer"> {/* Usando home-footer para o estilo base */}
                 <p>Autores: Elitinho123456 / Guilherme Figueiredo Terenciani</p>
@@ -242,6 +257,6 @@ export default function ProfilePage() {
                     </a>
                 </p>
             </footer>
-        </div>
+        </div >
     );
 }

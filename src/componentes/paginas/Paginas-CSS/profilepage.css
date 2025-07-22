@@ -54,25 +54,49 @@
 }
 
 .profile-picture-wrapper {
-    width: 6rem;
-    position: absolute;
-    top: -50px;
-    left: 30px;
-    border-radius: 50%;
-    background-color: #0056b3;
-    padding: 5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10
+  width: 6rem;
+  height: 6rem;
+  position: absolute;
+  top: -50px;
+  left: 30px;
+  border-radius: 50%;
+  background-color: #0056b3;
+  padding: 5px;
+  z-index: 10;
+  
+  /* RE-ADICIONADO: Centraliza o conteúdo (a imagem) */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.profile-picture-wrapper:hover {
+  cursor: pointer;
+  transform: scale(1.05);
+  transition: transform 0.2s ease-in-out;
+}
+
+.profile-picture-wrapper:hover .profile-picture {
+  filter: brightness(0.5);
+  transition: filter 0.2s ease-in-out;
 }
 
 .profile-picture {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    border: 3px solid #2a2a4a;
-    object-fit: cover;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid #2a2a4a;
+  object-fit: cover;
+}
+
+.editar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 11;
+  color: white;
+  pointer-events: none;
 }
 
 .profile-details-content {
