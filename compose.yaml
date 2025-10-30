@@ -1,0 +1,70 @@
+services:
+  web:
+    image: ifcode-frontend-image
+    build:
+      context: ./frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - VITE_API_URL=server:8001
+    profiles: ['production']
+    networks:
+      - ifcode-net
+  web-dev:
+    image: ifcode-frontend-dev-image
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    environment:
+      - VITE_API_URL=server-dev:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    profiles: ['dev']
+    networks:
+      - ifcode-net
+  server:
+    image: ifcode-backend-image
+    build:
+      context: ./backend
+    ports:
+      - "8081:8000"
+    profiles: ['production']
+    networks:
+      - ifcode-net
+  server-dev:
+    depends_on:
+      - rabbitmq
+    image: ifcode-backend-dev-image
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - DEV_MODE=true
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672/
+    profiles: ['dev']
+    networks:
+      - ifcode-net
+  rabbitmq:
+    image: rabbitmq:management-alpine
+    container_name: ifcode-rabbitmq-container
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    profiles: ['dev']
+    networks:
+      - ifcode-net
+  
+networks:
+  ifcode-net:
+    driver: bridge

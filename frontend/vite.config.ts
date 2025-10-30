@@ -6,4 +6,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@monaco-editor/react'],
   },
+  server: {
+    port: 5000,
+    host: true,
+    strictPort: true,
+  },
 });

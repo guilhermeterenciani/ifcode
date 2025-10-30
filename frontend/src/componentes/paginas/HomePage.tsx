@@ -30,8 +30,7 @@ export default function HomePage() {
             </header>
 
             <main className="home-main-content">
-
-                <h1>Bem Vindo {isLoggedIn && !isAnonymous ? ' de volta!' : '!'}</h1> {/*Mostra o nome do Usuario caso ele tenha logado*/}
+                <h1>Bem Vindo tere {isLoggedIn && !isAnonymous ? ' de volta!' : '!'}</h1> {/*Mostra o nome do Usuario caso ele tenha logado*/}
                 <div className="home-buttons">
 
                     <Link to={isLoggedIn ? '/profile' : '/login'} className='home-button'>
