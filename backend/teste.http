@@ -1,0 +1,9 @@
+post http://localhost:8000/api/submit
+Content-Type: application/json
+
+{
+    "submissionId": "1234567890",
+    "problemId": 1,
+    "code": "console.log('Hello World!');"
+}
+
