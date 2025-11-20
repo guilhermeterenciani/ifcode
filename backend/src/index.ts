@@ -5,9 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 import Docker from 'dockerode';
 import { promises as fs } from 'fs';
-import path from 'path';
+import path, { resolve } from 'path';
 import { fileURLToPath } from 'url';
-import * as tar from 'tar';
+import * as tar from 'tar-fs';
+import { finished } from 'stream/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,7 +65,7 @@ interface StoredResult {
 const CONFIG: Config = {
   RABBITMQ_URL: process.env.RABBITMQ_URL || 'amqp://localhost',
   QUEUE_NAME: 'code-submissions',
-  TIMEOUT: 60000,
+  TIMEOUT: 30000,
   MEMORY: 256 * 1024 * 1024,
   CPU_QUOTA: 50000,
   CLEANUP_RETRIES: 3,
@@ -77,7 +78,7 @@ app.use(express.json());
 
 
 // Docker instance
-const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+const docker = new Docker({ socketPath: '/var/run/docker.sock'});
 
 // Armazenamento em memória para resultados
 const results = new Map<string, StoredResult>();
@@ -139,42 +140,42 @@ test('-2 é par', () => {
 async function connectToRabbitMQ(retryCount = 0, maxRetries = 30): Promise<Connection> {
   const baseDelay = 2000; // 2 segundos
   const maxDelay = 30000; // 30 segundos
-  
+
   try {
-    console.log(`🔄 Tentando conectar ao RabbitMQ (tentativa ${retryCount + 1}/${maxRetries})...`);
-    
+    console.log(`Tentando conectar ao RabbitMQ (tentativa ${retryCount + 1}/${maxRetries})...`);
+
     const conn: Connection = await amqp.connect(CONFIG.RABBITMQ_URL, { timeout: 10000 });
-    console.log('✅ Conectado ao RabbitMQ');
+    console.log(' Conectado ao RabbitMQ');
 
     channel = await conn.createChannel();
     await channel.assertQueue(CONFIG.QUEUE_NAME, { durable: true });
 
-    console.log(`📬 Fila "${CONFIG.QUEUE_NAME}" criada/conectada`);
+    console.log(` Fila "${CONFIG.QUEUE_NAME}" criada/conectada`);
 
     // Handler de desconexão
     conn.on('close', () => {
-      console.error('❌ Conexão com RabbitMQ fechada. Tentando reconectar...');
+      console.error('Conexão com RabbitMQ fechada. Tentando reconectar...');
       channel = null;
       setTimeout(() => connectToRabbitMQ(0, maxRetries), 5000);
     });
 
     conn.on('error', (err: Error) => {
-      console.error('❌ Erro na conexão RabbitMQ:', err.message);
+      console.error('Erro na conexão RabbitMQ:', err.message);
     });
 
     return conn;
   } catch (error) {
     const err = error as Error;
-    
+
     if (retryCount >= maxRetries - 1) {
-      console.error(`❌ Falha ao conectar ao RabbitMQ após ${maxRetries} tentativas`);
+      console.error(`Falha ao conectar ao RabbitMQ após ${maxRetries} tentativas`);
       throw new Error(`Não foi possível conectar ao RabbitMQ: ${err.message}`);
     }
-    
+
     // Backoff exponencial com limite máximo
     const delay = Math.min(baseDelay * Math.pow(1.5, retryCount), maxDelay);
-    console.log(`⏳ RabbitMQ não disponível. Tentando novamente em ${(delay / 1000).toFixed(1)}s...`);
-    
+    console.log(` RabbitMQ não disponível. Tentando novamente em ${(delay / 1000).toFixed(1)}s...`);
+
     await new Promise(resolve => setTimeout(resolve, delay));
     return connectToRabbitMQ(retryCount + 1, maxRetries);
   }
@@ -234,7 +235,7 @@ async function executeCode(
 
     // Adiciona exports automaticamente ao código do usuário
     const codeWithExports = addExportsToCode(userCode);
-    console.log(codeWithExports);
+    console.log("Código que deve ser executado: ",codeWithExports);
     await fs.writeFile(path.join(workDir, 'solution.js'), codeWithExports);
     await fs.writeFile(path.join(workDir, 'solution.test.js'), testFile);
 
@@ -272,9 +273,8 @@ async function executeCode(
     // Cria container Docker
     console.log('Files in workDir:', await fs.readdir(workDir));
     container = await docker.createContainer({
-      Image: 'node:25-alpine',
+      Image: 'jest-container:latest',
       WorkingDir: '/app',
-      Cmd: ['/bin/sh', '-c', 'ls -la /app'], //'npm install && npm run solution'],
       //copy the logs to the container
       name: `code-judge-${executionId}`,
       HostConfig: {
@@ -284,20 +284,42 @@ async function executeCode(
         CpuQuota: CONFIG.CPU_QUOTA,
         NetworkMode: 'none',
       },
+      AttachStdin: false,
       AttachStdout: true,
       AttachStderr: true,
+      Tty: true,
+      Cmd: ['sh', '-c', 'npm run test'],
+      // Cmd: ['/bin/sh', '-c', 'echo "Hello World!"'],
+      OpenStdin: false,
+      StdinOnce: false
     });
 
     console.log(`[${executionId}] Container criado`);
 
-    // Inicia container
-    container.start();
+    // Cria o tar em memória
+    const tarStream = tar.pack(workDir);
 
-    await container.putArchive(await tar.pack(workDir), { path: '/app' });
+    // Envia para o container
+    await container.putArchive(tarStream, { path: '/app' });
 
-    // Promise para capturar output
+    // Espera o stream terminar antes de prosseguir (garante que tudo foi extraído)
+    await finished(tarStream);
+    // Promise para capturar output~
 
-    const outputPromise = captureOutput(container);
+    const attachStream = await container.attach({
+      stream: true,
+      stdout: true,
+      stderr: true,
+    });
+
+    // Começa a escutar ANTES do start
+    let outputLog = '';
+    attachStream.on('data', chunk => (
+      outputLog += chunk.toString('utf8')
+    ));
+    attachStream.pipe(process.stdout);
+    attachStream.pipe(process.stderr);
+    await container.start();
 
     // Promise de timeout com kill garantido
     const timeoutPromise = new Promise<string>((_, reject) => {
@@ -307,20 +329,20 @@ async function executeCode(
         reject(new Error('Timeout: execução demorou mais de 30 segundos'));
       }, CONFIG.TIMEOUT);
     });
-
-    // Race entre output e timeout.
-   const output = await Promise.race([outputPromise, timeoutPromise]);
-   
-   console.log(`[${executionId}] Output:`, output);
-    // Cancela timeout se concluído com sucesso
-    if (timeoutHandle) clearTimeout(timeoutHandle);
-    console.log(`[${executionId}] ✅ Execução concluída`);
-
     // Aguarda container finalizar
     await container.wait();
+    // Race entre output e timeout.
+    const output = outputLog//Promise.race([outputPromise, timeoutPromise]);
 
- 
-  
+    console.log(`[${executionId}] Output:`, output);
+    // Cancela timeout se concluído com sucesso
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    console.log(`[${executionId}]  Execução concluída`);
+
+    
+
+
+
 
     // Remove container
     await safeRemoveContainer(container, executionId);
@@ -329,13 +351,13 @@ async function executeCode(
     const result = await parseJestResult(workDir, output);
 
     // Limpa diretório temporário
-    //await cleanupWorkDir(workDir, executionId);
+    await cleanupWorkDir(workDir, executionId);
 
     return result;
 
   } catch (error) {
     const err = error as Error;
-    console.error(`[${executionId}] ❌ Erro:`, err.message);
+    console.error(`[${executionId}] Erro linha 359:`, err.message);
 
     if (timeoutHandle) clearTimeout(timeoutHandle);
     if (container) await forceKillContainer(container, executionId);
@@ -518,7 +540,8 @@ async function captureOutput(container: Docker.Container): Promise<string> {
         }
 
         stream.on('data', (chunk: Buffer) => {
-          output += chunk.toString('utf8');
+          const chunkStr = chunk.toString('utf8');
+          output += chunkStr;
         });
 
         stream.on('end', () => {
@@ -620,7 +643,7 @@ async function startConsumer(): Promise<void> {
           },
         });
 
-        console.log(`✅ Submissão ${submissionId} processada: ${result.passed}/${result.total} testes`);
+        console.log(` Submissão ${submissionId} processada: ${result.passed}/${result.total} testes`);
 
         // Acknowledge da mensagem
         if (channel) {
@@ -629,7 +652,7 @@ async function startConsumer(): Promise<void> {
 
       } catch (error) {
         const err = error as Error;
-        console.error(`❌ Erro ao processar ${submissionId}:`, err.message);
+        console.error(`Erro ao processar ${submissionId}:`, err.message);
 
         results.set(submissionId, {
           submissionId,
@@ -653,7 +676,7 @@ async function startConsumer(): Promise<void> {
 
   } catch (error) {
     const err = error as Error;
-    console.error('❌ Erro ao iniciar consumer:', err.message);
+    console.error('Erro ao iniciar consumer:', err.message);
     throw error;
   }
 }
@@ -748,7 +771,7 @@ async function start(): Promise<void> {
     await startConsumer();
 
     // Limpeza periódica de containers órfãos (a cada 10 minutos)
-    setInterval(cleanupOrphanedContainers, 30000);//1000 * 60 * 10);
+    setInterval(cleanupOrphanedContainers, 1000 * 60 * 5);
 
     // Limpeza periódica de resultados antigos (a cada 5 minutos)
     setInterval(() => {
@@ -765,14 +788,14 @@ async function start(): Promise<void> {
     // Inicia servidor HTTP
     app.listen(PORT, () => {
       console.log(`\n🚀 Servidor rodando em http://localhost:${PORT}`);
-      console.log(`📬 RabbitMQ conectado: ${CONFIG.RABBITMQ_URL}`);
+      console.log(` RabbitMQ conectado: ${CONFIG.RABBITMQ_URL}`);
       console.log(`🐳 Docker disponível`);
-      console.log(`✅ Sistema pronto!\n`);
+      console.log(` Sistema pronto!\n`);
     });
 
   } catch (error) {
     const err = error as Error;
-    console.error('❌ Erro ao iniciar servidor:', err.message);
+    console.error('Erro ao iniciar servidor:', err.message);
     process.exit(1);
   }
 }
