@@ -7,8 +7,10 @@ import Docker from 'dockerode';
 import { promises as fs } from 'fs';
 import path, { resolve } from 'path';
 import { fileURLToPath } from 'url';
-import * as tar from 'tar-fs';
+import * as tarf from 'tar-fs';
+import tar from 'tar-stream';
 import { finished } from 'stream/promises';
+import { get } from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,7 +80,7 @@ app.use(express.json());
 
 
 // Docker instance
-const docker = new Docker({ socketPath: '/var/run/docker.sock'});
+const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 // Armazenamento em memória para resultados
 const results = new Map<string, StoredResult>();
@@ -235,7 +237,7 @@ async function executeCode(
 
     // Adiciona exports automaticamente ao código do usuário
     const codeWithExports = addExportsToCode(userCode);
-    console.log("Código que deve ser executado: ",codeWithExports);
+    console.log("Código que deve ser executado: ", codeWithExports);
     await fs.writeFile(path.join(workDir, 'solution.js'), codeWithExports);
     await fs.writeFile(path.join(workDir, 'solution.test.js'), testFile);
 
@@ -246,7 +248,7 @@ async function executeCode(
       type: 'module',
       scripts: {
         solution: 'node solution.js',
-        test: 'NODE_OPTIONS=--experimental-vm-modules jest --json --outputFile=result.json --testLocationInResults --noStackTrace',
+        test: `NODE_OPTIONS=--experimental-vm-modules jest --json --outputFile=/app/result.json --testLocationInResults --noStackTrace`,
       },
       devDependencies: {
         jest: '^29.7.0',
@@ -288,7 +290,7 @@ async function executeCode(
       AttachStdout: true,
       AttachStderr: true,
       Tty: true,
-      Cmd: ['sh', '-c', 'npm run test'],
+      Cmd: ['sh', '-c', 'npm run test && ls /app'],
       // Cmd: ['/bin/sh', '-c', 'echo "Hello World!"'],
       OpenStdin: false,
       StdinOnce: false
@@ -297,7 +299,7 @@ async function executeCode(
     console.log(`[${executionId}] Container criado`);
 
     // Cria o tar em memória
-    const tarStream = tar.pack(workDir);
+    const tarStream = tarf.pack(workDir);
 
     // Envia para o container
     await container.putArchive(tarStream, { path: '/app' });
@@ -313,10 +315,14 @@ async function executeCode(
     });
 
     // Começa a escutar ANTES do start
-    let outputLog = '';
-    attachStream.on('data', chunk => (
-      outputLog += chunk.toString('utf8')
-    ));
+    let outputPromiseLogTerminal = new Promise<string>((resolve, reject) => {
+      let output = '';
+      attachStream.on('data', chunk => {
+        output += chunk.toString('utf8');
+      });
+      attachStream.on('end', () => resolve(output));
+      attachStream.on('error', err => reject(err));
+    });
     attachStream.pipe(process.stdout);
     attachStream.pipe(process.stderr);
     await container.start();
@@ -324,31 +330,54 @@ async function executeCode(
     // Promise de timeout com kill garantido
     const timeoutPromise = new Promise<string>((_, reject) => {
       timeoutHandle = setTimeout(async () => {
-        console.log(`[${executionId}] ⏱️  Timeout atingido`);
+        console.log(`[${executionId}]   Timeout atingido`);
         await forceKillContainer(container!, executionId);
         reject(new Error('Timeout: execução demorou mais de 30 segundos'));
       }, CONFIG.TIMEOUT);
     });
     // Aguarda container finalizar
     await container.wait();
+    // Read outputfile in temp folder to outputPromiseLogTerminal
+
+    const steam = await container.getArchive({ path: '/app/result.json' });
+    // Read stream to a string and return only the content of the file removing the header result.json0000644000000000000000000000352515110166433011462 0ustar0000000000000000
+    const outputPromise = new Promise<string>((resolve, reject) => {
+      const extract = tar.extract();
+
+      extract.on('entry', (header, stream, next) => {
+        let content = '';
+
+        stream.on('data', (chunk) => {
+          content += chunk.toString('utf8');
+        });
+
+        stream.on('end', () => {
+          resolve(content);
+          next();
+        });
+
+        stream.resume();
+      });
+
+      extract.on('error', reject);
+
+      steam.pipe(extract);
+    });
+
     // Race entre output e timeout.
-    const output = outputLog//Promise.race([outputPromise, timeoutPromise]);
+    const output = await Promise.race([outputPromise, timeoutPromise]);
 
     console.log(`[${executionId}] Output:`, output);
     // Cancela timeout se concluído com sucesso
     if (timeoutHandle) clearTimeout(timeoutHandle);
     console.log(`[${executionId}]  Execução concluída`);
 
-    
-
-
-
 
     // Remove container
     await safeRemoveContainer(container, executionId);
 
     // Lê resultado JSON do Jest (protegido contra burla)
-    const result = await parseJestResult(workDir, output);
+    const result = await parseJestResult(output);
 
     // Limpa diretório temporário
     await cleanupWorkDir(workDir, executionId);
@@ -357,7 +386,7 @@ async function executeCode(
 
   } catch (error) {
     const err = error as Error;
-    console.error(`[${executionId}] Erro linha 359:`, err.message);
+    console.error(`[${executionId}] Erro:`, err.message);
 
     if (timeoutHandle) clearTimeout(timeoutHandle);
     if (container) await forceKillContainer(container, executionId);
@@ -375,12 +404,10 @@ async function executeCode(
 }
 
 // ===== PARSE SEGURO DO RESULTADO JEST =====
-async function parseJestResult(workDir: string, consoleOutput: string): Promise<ExecutionResult> {
+async function parseJestResult(output: string): Promise<ExecutionResult> {
   try {
     // Tenta ler o arquivo JSON gerado pelo Jest
-    const resultPath = path.join(workDir, 'result.json');
-    const resultContent = await fs.readFile(resultPath, 'utf8');
-    const jestResult = JSON.parse(resultContent);
+    const jestResult = JSON.parse(output);
 
     // Extrai dados do JSON oficial do Jest (não pode ser burlado)
     const { numPassedTests, numFailedTests, numTotalTests, success } = jestResult;
@@ -421,8 +448,9 @@ async function parseJestResult(workDir: string, consoleOutput: string): Promise<
 
   } catch (error) {
     // Fallback para parsing do console
+    console.log(error)
     console.warn(`[parseJestResult] Não foi possível ler result.json, usando console output`);
-    return parseConsoleOutput(consoleOutput);
+    return new Promise((resolve, reject) => reject(error));
   }
 }
 
